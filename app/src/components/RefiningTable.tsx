@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef, useEffect, type ReactNode } from 'react';
 import { type Recipe } from '../data/recipes';
-import { calculateRefine, formatSilver, type Settings, type RefineResult } from '../utils/calculations';
+import { type Transmutation } from '../data/transmutations';
+import { calculateRefineWithTransmute, formatSilver, type Settings, type RefineResultWithTransmute, type TransmuteAltResult } from '../utils/calculations';
 import PriceCell from './PriceCell';
 import ItemIcon from './ItemIcon';
 
@@ -8,6 +9,7 @@ type SortKey = 'tier' | 'profitNoFocus' | 'profitWithFocus' | 'focusEfficiency';
 
 interface RefiningTableProps {
   recipes: Recipe[];
+  transmutations: Transmutation[];
   getBuyPrice: (itemId: string) => number;
   getBuyPriceInfo: (itemId: string) => { price: number; city: string; date: string; isOverride: boolean };
   getSellPrice: (itemId: string) => number;
@@ -25,6 +27,7 @@ const profitColor = (val: number) =>
 
 export default function RefiningTable({
   recipes,
+  transmutations,
   getBuyPrice,
   getBuyPriceInfo,
   getSellPrice,
@@ -39,8 +42,8 @@ export default function RefiningTable({
   const [filterEnchants, setFilterEnchants] = useState<Set<number>>(new Set(ENCHANTS));
 
   const results = useMemo(() => {
-    return recipes.map((recipe) => calculateRefine(recipe, getBuyPrice, getSellPrice, settings));
-  }, [recipes, getBuyPrice, getSellPrice, settings]);
+    return recipes.map((recipe) => calculateRefineWithTransmute(recipe, getBuyPrice, getSellPrice, settings, transmutations));
+  }, [recipes, getBuyPrice, getSellPrice, settings, transmutations]);
 
   const filtered = useMemo(() => {
     return results.filter(
@@ -242,7 +245,7 @@ function MaterialCostTooltip({
   onOverride,
   onClearOverride,
 }: {
-  result: RefineResult;
+  result: RefineResultWithTransmute;
   getBuyPriceInfo: (itemId: string) => { price: number; city: string; date: string; isOverride: boolean };
   onOverride: (itemId: string, price: number) => void;
   onClearOverride: (itemId: string) => void;
@@ -284,14 +287,19 @@ function MaterialCostTooltip({
       {/* Trigger: material cost value */}
       <span
         className="tabular-nums cursor-default flex items-center gap-1 transition-colors"
-        style={{ color: 'var(--color-text-secondary)' }}
+        style={{ color: result.transmuteAlt ? 'var(--color-accent)' : 'var(--color-text-secondary)' }}
         onMouseEnter={(e) => {
           (e.currentTarget as HTMLElement).style.color = 'var(--color-text-primary)';
         }}
         onMouseLeave={(e) => {
-          (e.currentTarget as HTMLElement).style.color = 'var(--color-text-secondary)';
+          (e.currentTarget as HTMLElement).style.color = result.transmuteAlt ? 'var(--color-accent)' : 'var(--color-text-secondary)';
         }}
       >
+        {result.transmuteAlt && (
+          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+          </svg>
+        )}
         {formatSilver(Math.round(result.materialCost))}
         <svg
           className="w-3.5 h-3.5 flex-shrink-0 opacity-40"
@@ -365,8 +373,105 @@ function MaterialCostTooltip({
               {formatSilver(Math.round(result.materialCost))}
             </span>
           </div>
+
+          {/* Transmute alternative section */}
+          {result.transmuteAlt && (
+            <TransmuteAltSection
+              transmuteAlt={result.transmuteAlt}
+              getBuyPriceInfo={getBuyPriceInfo}
+            />
+          )}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ─── Transmute Alternative Section (inside tooltip) ─── */
+
+function TransmuteAltSection({
+  transmuteAlt,
+  getBuyPriceInfo,
+}: {
+  transmuteAlt: TransmuteAltResult;
+  getBuyPriceInfo: (itemId: string) => { price: number; city: string; date: string; isOverride: boolean };
+}) {
+  const { alternative, quantity, totalSavings, adjustedMaterialCost } = transmuteAlt;
+  const tx = alternative.transmutation;
+  const sourceInfo = getBuyPriceInfo(tx.fromId);
+
+  return (
+    <div className="mt-2 pt-2 border-t" style={{ borderColor: 'var(--color-border-subtle)' }}>
+      <div className="flex items-center gap-1.5 mb-2">
+        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-accent)' }}>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+        </svg>
+        <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--color-accent)' }}>
+          Cheaper via Transmute
+        </span>
+      </div>
+
+      {/* From → To row */}
+      <div
+        className="flex items-center gap-2 rounded-md px-2 py-1.5 mb-1.5"
+        style={{ backgroundColor: 'rgba(245, 158, 11, 0.06)' }}
+      >
+        <ItemIcon itemId={tx.fromId} size={20} />
+        <span className="text-xs" style={{ color: 'var(--color-text-primary)' }}>
+          {tx.fromLabel}
+        </span>
+        <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-text-muted)' }}>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+        </svg>
+        <ItemIcon itemId={tx.toId} size={20} />
+        <span className="text-xs" style={{ color: 'var(--color-text-primary)' }}>
+          {tx.toLabel}
+        </span>
+      </div>
+
+      {/* Cost breakdown */}
+      <div className="flex flex-col gap-1 text-[11px] px-1">
+        <div className="flex justify-between">
+          <span style={{ color: 'var(--color-text-muted)' }}>Source price</span>
+          <span className="tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
+            {formatSilver(alternative.sourceBuyPrice)}
+            {sourceInfo.city !== 'N/A' && (
+              <span className="ml-1 text-[10px]" style={{ color: 'var(--color-text-muted)' }}>({sourceInfo.city})</span>
+            )}
+          </span>
+        </div>
+        <div className="flex justify-between">
+          <span style={{ color: 'var(--color-text-muted)' }}>Transmute cost</span>
+          <span className="tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>{formatSilver(tx.transmuteCost)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span style={{ color: 'var(--color-text-muted)' }}>Cost per unit</span>
+          <span className="tabular-nums font-medium" style={{ color: 'var(--color-text-primary)' }}>{formatSilver(alternative.costPerUnit)}</span>
+        </div>
+        <div className="flex justify-between">
+          <span style={{ color: 'var(--color-text-muted)' }}>Direct buy price</span>
+          <span className="tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>{formatSilver(alternative.directBuyPrice)}</span>
+        </div>
+      </div>
+
+      {/* Savings summary */}
+      <div className="flex items-center justify-between mt-2 pt-1.5 border-t" style={{ borderColor: 'var(--color-border-subtle)' }}>
+        <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>
+          Save ({quantity}x)
+        </span>
+        <span className="text-xs tabular-nums font-semibold" style={{ color: 'var(--color-profit)' }}>
+          -{formatSilver(Math.round(totalSavings))}
+        </span>
+      </div>
+
+      <div className="flex items-center justify-between mt-1">
+        <span className="text-[10px] font-medium uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>
+          Adjusted Total
+        </span>
+        <span className="text-xs tabular-nums font-semibold" style={{ color: 'var(--color-accent)' }}>
+          {formatSilver(Math.round(adjustedMaterialCost))}
+        </span>
+      </div>
     </div>
   );
 }
@@ -381,7 +486,7 @@ function RefiningRow({
   onOverride,
   onClearOverride,
 }: {
-  result: RefineResult;
+  result: RefineResultWithTransmute;
   isBest: boolean;
   getBuyPriceInfo: (itemId: string) => { price: number; city: string; date: string; isOverride: boolean };
   getSellPriceInfo: (itemId: string) => { price: number; city: string; date: string; isOverride: boolean };
@@ -470,11 +575,31 @@ function RefiningRow({
       {/* Profit no focus */}
       <td className="px-4 py-3 text-right tabular-nums font-medium" style={{ color: profitColor(result.profitNoFocus) }}>
         {formatSilver(Math.round(result.profitNoFocus))}
+        {result.transmuteAlt && (
+          <div className="flex items-center justify-end gap-0.5 mt-0.5">
+            <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-accent)' }}>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+            </svg>
+            <span className="text-[10px] font-medium" style={{ color: profitColor(result.transmuteAlt.adjustedProfitNoFocus) }}>
+              {formatSilver(Math.round(result.transmuteAlt.adjustedProfitNoFocus))}
+            </span>
+          </div>
+        )}
       </td>
 
       {/* Profit with focus */}
       <td className="px-4 py-3 text-right tabular-nums font-medium" style={{ color: profitColor(result.profitWithFocus) }}>
         {formatSilver(Math.round(result.profitWithFocus))}
+        {result.transmuteAlt && (
+          <div className="flex items-center justify-end gap-0.5 mt-0.5">
+            <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-accent)' }}>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+            </svg>
+            <span className="text-[10px] font-medium" style={{ color: profitColor(result.transmuteAlt.adjustedProfitWithFocus) }}>
+              {formatSilver(Math.round(result.transmuteAlt.adjustedProfitWithFocus))}
+            </span>
+          </div>
+        )}
       </td>
 
       {/* Focus efficiency */}

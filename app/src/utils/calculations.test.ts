@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateRefine, calculateTransmutation, formatSilver, DEFAULT_SETTINGS } from './calculations';
+import { calculateRefine, calculateTransmutation, formatSilver, DEFAULT_SETTINGS, findBestTransmuteForInput, calculateRefineWithTransmute } from './calculations';
 import type { Recipe } from '../data/recipes';
 import type { Transmutation } from '../data/transmutations';
 
@@ -159,5 +159,196 @@ describe('formatSilver', () => {
   it('formats small numbers without commas', () => {
     expect(formatSilver(42)).toBe('42');
     expect(formatSilver(999)).toBe('999');
+  });
+});
+
+/* ─── Transmute-before-refine tests ─── */
+
+// Mock: recipe for T6.2 Plank requiring 4× T6_WOOD@2 + 1× T5_PLANKS@2
+const transmuteRecipe: Recipe = {
+  id: 'refine-wood-6-2',
+  tier: 6,
+  enchant: 2,
+  productId: 'T6_PLANKS@2',
+  productLabel: '6.2 Plank',
+  inputs: [
+    { itemId: 'T6_WOOD@2', quantity: 4, label: '6.2 Log' },
+    { itemId: 'T5_PLANKS@2', quantity: 1, label: '5.2 Plank' },
+  ],
+  nutrition: 7.2,
+  focusCost: 216,
+};
+
+// Two transmutations that produce T6_WOOD@2
+const transmutations: Transmutation[] = [
+  {
+    id: 'tx-wood-5.2-6.2',
+    fromId: 'T5_WOOD@2',
+    toId: 'T6_WOOD@2',
+    fromLabel: '5.2 Log',
+    toLabel: '6.2 Log',
+    transmuteCost: 5780,
+  },
+  {
+    id: 'tx-wood-6.1-6.2',
+    fromId: 'T6_WOOD@1',
+    toId: 'T6_WOOD@2',
+    fromLabel: '6.1 Log',
+    toLabel: '6.2 Log',
+    transmuteCost: 6936,
+  },
+  // Unrelated transmutation
+  {
+    id: 'tx-wood-7.0-8.0',
+    fromId: 'T7_WOOD',
+    toId: 'T8_WOOD',
+    fromLabel: '7.0 Log',
+    toLabel: '8.0 Log',
+    transmuteCost: 5780,
+  },
+];
+
+describe('findBestTransmuteForInput', () => {
+  it('finds the cheapest transmute path that beats direct buy', () => {
+    // T6_WOOD@2 costs 10000, T5_WOOD@2 costs 2000, T6_WOOD@1 costs 1500
+    // Path 1: 2000 + 5780 = 7780 (saves 2220/unit)
+    // Path 2: 1500 + 6936 = 8436 (saves 1564/unit)
+    // Path 1 is cheaper
+    const prices: Record<string, number> = {
+      'T6_WOOD@2': 10000,
+      'T5_WOOD@2': 2000,
+      'T6_WOOD@1': 1500,
+    };
+    const getBuyPrice = (id: string) => prices[id] ?? 0;
+
+    const result = findBestTransmuteForInput('T6_WOOD@2', transmutations, getBuyPrice);
+    expect(result).not.toBeNull();
+    expect(result!.transmutation.id).toBe('tx-wood-5.2-6.2');
+    expect(result!.costPerUnit).toBe(7780);
+    expect(result!.savingsPerUnit).toBe(2220);
+  });
+
+  it('returns null when no transmute path is cheaper', () => {
+    // T6_WOOD@2 costs 100 (very cheap), transmute paths are more expensive
+    const prices: Record<string, number> = {
+      'T6_WOOD@2': 100,
+      'T5_WOOD@2': 2000,
+      'T6_WOOD@1': 1500,
+    };
+    const getBuyPrice = (id: string) => prices[id] ?? 0;
+
+    const result = findBestTransmuteForInput('T6_WOOD@2', transmutations, getBuyPrice);
+    expect(result).toBeNull();
+  });
+
+  it('returns null when no transmutations target the item', () => {
+    const getBuyPrice = () => 1000;
+    const result = findBestTransmuteForInput('T4_WOOD', transmutations, getBuyPrice);
+    expect(result).toBeNull();
+  });
+
+  it('skips sources with zero price', () => {
+    const prices: Record<string, number> = {
+      'T6_WOOD@2': 10000,
+      'T5_WOOD@2': 0,    // no data
+      'T6_WOOD@1': 1500,
+    };
+    const getBuyPrice = (id: string) => prices[id] ?? 0;
+
+    const result = findBestTransmuteForInput('T6_WOOD@2', transmutations, getBuyPrice);
+    expect(result).not.toBeNull();
+    expect(result!.transmutation.id).toBe('tx-wood-6.1-6.2');
+  });
+});
+
+describe('calculateRefineWithTransmute', () => {
+  it('returns null transmuteAlt when no cheaper path exists', () => {
+    const prices: Record<string, number> = {
+      'T6_WOOD@2': 100,
+      'T5_PLANKS@2': 200,
+      'T6_PLANKS@2': 1000,
+      'T5_WOOD@2': 5000,
+      'T6_WOOD@1': 5000,
+    };
+    const getBuyPrice = (id: string) => prices[id] ?? 0;
+    const getSellPrice = (id: string) => prices[id] ?? 0;
+
+    const result = calculateRefineWithTransmute(transmuteRecipe, getBuyPrice, getSellPrice, DEFAULT_SETTINGS, transmutations);
+    expect(result.transmuteAlt).toBeNull();
+    expect(result.materialCost).toBe(4 * 100 + 1 * 200); // 600
+  });
+
+  it('returns valid transmuteAlt when transmuting is cheaper', () => {
+    const prices: Record<string, number> = {
+      'T6_WOOD@2': 10000,
+      'T5_PLANKS@2': 500,
+      'T6_PLANKS@2': 50000,
+      'T5_WOOD@2': 2000,
+      'T6_WOOD@1': 1500,
+    };
+    const getBuyPrice = (id: string) => prices[id] ?? 0;
+    const getSellPrice = (id: string) => prices[id] ?? 0;
+
+    const result = calculateRefineWithTransmute(transmuteRecipe, getBuyPrice, getSellPrice, DEFAULT_SETTINGS, transmutations);
+    expect(result.transmuteAlt).not.toBeNull();
+    expect(result.transmuteAlt!.quantity).toBe(4);
+    // Transmute path: 2000 + 5780 = 7780/unit, direct: 10000/unit, savings: 2220/unit
+    expect(result.transmuteAlt!.alternative.savingsPerUnit).toBe(2220);
+    expect(result.transmuteAlt!.totalSavings).toBe(2220 * 4);
+  });
+
+  it('adjusted material cost is lower when transmuting', () => {
+    const prices: Record<string, number> = {
+      'T6_WOOD@2': 10000,
+      'T5_PLANKS@2': 500,
+      'T6_PLANKS@2': 50000,
+      'T5_WOOD@2': 2000,
+      'T6_WOOD@1': 1500,
+    };
+    const getBuyPrice = (id: string) => prices[id] ?? 0;
+    const getSellPrice = (id: string) => prices[id] ?? 0;
+
+    const result = calculateRefineWithTransmute(transmuteRecipe, getBuyPrice, getSellPrice, DEFAULT_SETTINGS, transmutations);
+    // Original: 4*10000 + 1*500 = 40500
+    // Adjusted: 4*7780 + 1*500 = 31620
+    expect(result.materialCost).toBe(40500);
+    expect(result.transmuteAlt!.adjustedMaterialCost).toBe(31620);
+    expect(result.transmuteAlt!.adjustedMaterialCost).toBeLessThan(result.materialCost);
+  });
+
+  it('adjusted profits are higher when transmuting', () => {
+    const prices: Record<string, number> = {
+      'T6_WOOD@2': 10000,
+      'T5_PLANKS@2': 500,
+      'T6_PLANKS@2': 50000,
+      'T5_WOOD@2': 2000,
+      'T6_WOOD@1': 1500,
+    };
+    const getBuyPrice = (id: string) => prices[id] ?? 0;
+    const getSellPrice = (id: string) => prices[id] ?? 0;
+
+    const result = calculateRefineWithTransmute(transmuteRecipe, getBuyPrice, getSellPrice, DEFAULT_SETTINGS, transmutations);
+    expect(result.transmuteAlt!.adjustedProfitNoFocus).toBeGreaterThan(result.profitNoFocus);
+    expect(result.transmuteAlt!.adjustedProfitWithFocus).toBeGreaterThan(result.profitWithFocus);
+  });
+
+  it('base result values match calculateRefine', () => {
+    const prices: Record<string, number> = {
+      'T6_WOOD@2': 10000,
+      'T5_PLANKS@2': 500,
+      'T6_PLANKS@2': 50000,
+      'T5_WOOD@2': 2000,
+      'T6_WOOD@1': 1500,
+    };
+    const getBuyPrice = (id: string) => prices[id] ?? 0;
+    const getSellPrice = (id: string) => prices[id] ?? 0;
+
+    const base = calculateRefine(transmuteRecipe, getBuyPrice, getSellPrice, DEFAULT_SETTINGS);
+    const withTx = calculateRefineWithTransmute(transmuteRecipe, getBuyPrice, getSellPrice, DEFAULT_SETTINGS, transmutations);
+
+    expect(withTx.materialCost).toBe(base.materialCost);
+    expect(withTx.profitNoFocus).toBe(base.profitNoFocus);
+    expect(withTx.profitWithFocus).toBe(base.profitWithFocus);
+    expect(withTx.focusEfficiency).toBe(base.focusEfficiency);
   });
 });

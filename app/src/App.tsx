@@ -170,6 +170,7 @@ export default function App() {
         {activeTab === 'refining' ? (
           <RefiningTable
             recipes={recipes}
+            transmutations={transmutations}
             getBuyPrice={getBuyPrice}
             getBuyPriceInfo={getBuyPriceInfo}
             getSellPrice={getSellPrice}
