@@ -79,7 +79,7 @@ describe('calculateRefine', () => {
   });
 
   it('handles zero prices', () => {
-    const zeroPrices = (id: string) => 0;
+    const zeroPrices = (_id: string) => 0;
     const result = calculateRefine(mockRecipe, zeroPrices, zeroPrices, DEFAULT_SETTINGS);
     expect(result.materialCost).toBe(0);
     expect(result.estimatedSellPrice).toBe(0);

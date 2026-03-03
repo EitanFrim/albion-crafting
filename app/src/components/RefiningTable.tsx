@@ -220,7 +220,6 @@ export default function RefiningTable({
                   key={r.recipe.id}
                   result={r}
                   isBest={r.profitWithFocus === bestProfit && bestProfit > 0}
-                  settings={settings}
                   getBuyPriceInfo={getBuyPriceInfo}
                   getSellPriceInfo={getSellPriceInfo}
                   onOverride={onOverride}
@@ -250,7 +249,7 @@ function MaterialCostTooltip({
 }) {
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
 
   // Close when clicking outside
   useEffect(() => {
@@ -265,7 +264,7 @@ function MaterialCostTooltip({
   }, [open]);
 
   const handleEnter = () => {
-    clearTimeout(timeoutRef.current);
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setOpen(true);
   };
 
@@ -377,7 +376,6 @@ function MaterialCostTooltip({
 function RefiningRow({
   result,
   isBest,
-  settings,
   getBuyPriceInfo,
   getSellPriceInfo,
   onOverride,
@@ -385,7 +383,6 @@ function RefiningRow({
 }: {
   result: RefineResult;
   isBest: boolean;
-  settings: Settings;
   getBuyPriceInfo: (itemId: string) => { price: number; city: string; date: string; isOverride: boolean };
   getSellPriceInfo: (itemId: string) => { price: number; city: string; date: string; isOverride: boolean };
   onOverride: (itemId: string, price: number) => void;

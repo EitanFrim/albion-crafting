@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 import {
   rawId, refinedId, woodId, plankId,
   RESOURCES, RESOURCE_TYPES, getAllItemIds,
-  type ResourceType, type ResourceConfig,
 } from './items';
 
 describe('Resource configurations', () => {

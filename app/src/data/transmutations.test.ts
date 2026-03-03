@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { buildAllTransmutations, TRANSMUTATIONS_BY_RESOURCE, ALL_TRANSMUTATIONS } from './transmutations';
-import { RESOURCES, RESOURCE_TYPES, rawId } from './items';
+import { TRANSMUTATIONS_BY_RESOURCE, ALL_TRANSMUTATIONS } from './transmutations';
+import { RESOURCE_TYPES } from './items';
 
 describe('buildAllTransmutations', () => {
   it('generates 28 transmutation paths per resource', () => {

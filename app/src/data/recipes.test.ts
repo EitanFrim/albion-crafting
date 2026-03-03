@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildAllRecipes, RECIPES_BY_RESOURCE, ALL_RECIPES } from './recipes';
+import { RECIPES_BY_RESOURCE, ALL_RECIPES } from './recipes';
 import { RESOURCES, RESOURCE_TYPES, rawId, refinedId } from './items';
 
 describe('buildAllRecipes', () => {

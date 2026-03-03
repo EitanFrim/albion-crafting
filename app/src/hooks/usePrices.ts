@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { fetchPrices, getCheapestPrice, getCityPrice, type PriceMap, type PriceResult } from '../api/albionData';
+import { fetchPrices, getCheapestPrice, getCityPrice, type PriceMap } from '../api/albionData';
 import { getAllItemIds, type ServerKey, type City, CITIES } from '../data/items';
 
 const OVERRIDES_KEY = 'albion-refiner-price-overrides';
