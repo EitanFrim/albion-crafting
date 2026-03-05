@@ -27,7 +27,7 @@ interface PriceConfig {
 }
 
 const DEFAULT_CONFIG: PriceConfig = {
-  buyCities: [...CITIES],
+  buyCities: CITIES.filter(c => c !== 'Caerleon' && c !== 'Brecilien'),
   sellCity: 'best',
   maxAgeHours: 2,
 };
@@ -57,7 +57,7 @@ export interface PriceInfo {
 export function usePrices() {
   const [priceMap, setPriceMap] = useState<PriceMap>({});
   const [overrides, setOverrides] = useState<Record<string, number>>(loadOverrides);
-  const [server, setServer] = useState<ServerKey>('west');
+  const [server, setServer] = useState<ServerKey>('europe');
   const [buyCities, setBuyCities] = useState<Set<City>>(() => new Set(loadConfig().buyCities as City[]));
   const [sellCity, setSellCity] = useState<SellMode>(loadConfig().sellCity);
   const [maxAgeHours, setMaxAgeHours] = useState(loadConfig().maxAgeHours);
