@@ -6,6 +6,7 @@ export interface Settings {
   returnRateWithFocus: number; // 53.9
   nutritionPricePer100: number; // 395
   sellMarkdown: number;        // 5 (percent)
+  enableTransmute: boolean;    // calculate cheaper-via-transmute
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -13,6 +14,7 @@ export const DEFAULT_SETTINGS: Settings = {
   returnRateWithFocus: 53.9,
   nutritionPricePer100: 395,
   sellMarkdown: 5,
+  enableTransmute: true,
 };
 
 export interface RefineResult {

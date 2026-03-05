@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect, useLayoutEffect, type ReactNode }
 import { createPortal } from 'react-dom';
 import { type Recipe } from '../data/recipes';
 import { type Transmutation } from '../data/transmutations';
-import { calculateRefineWithTransmute, formatSilver, type Settings, type RefineResultWithTransmute, type TransmuteAltResult } from '../utils/calculations';
+import { calculateRefine, calculateRefineWithTransmute, formatSilver, type Settings, type RefineResultWithTransmute, type TransmuteAltResult } from '../utils/calculations';
 import PriceCell from './PriceCell';
 import ItemIcon from './ItemIcon';
 
@@ -43,7 +43,10 @@ export default function RefiningTable({
   const [filterEnchants, setFilterEnchants] = useState<Set<number>>(new Set(ENCHANTS));
 
   const results = useMemo(() => {
-    return recipes.map((recipe) => calculateRefineWithTransmute(recipe, getBuyPrice, getSellPrice, settings, transmutations));
+    if (settings.enableTransmute) {
+      return recipes.map((recipe) => calculateRefineWithTransmute(recipe, getBuyPrice, getSellPrice, settings, transmutations));
+    }
+    return recipes.map((recipe) => ({ ...calculateRefine(recipe, getBuyPrice, getSellPrice, settings), transmuteAlt: null }) as RefineResultWithTransmute);
   }, [recipes, getBuyPrice, getSellPrice, settings, transmutations]);
 
   const filtered = useMemo(() => {
@@ -330,7 +333,7 @@ function MaterialCostTooltip({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
             </svg>
           )}
-          {formatSilver(Math.round(result.materialCost))}
+          {formatSilver(Math.round(result.transmuteAlt ? result.transmuteAlt.adjustedMaterialCost : result.materialCost))}
           <svg
             className="w-3.5 h-3.5 flex-shrink-0 opacity-40"
             fill="none"

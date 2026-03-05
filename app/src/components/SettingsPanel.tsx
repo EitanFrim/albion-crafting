@@ -77,6 +77,35 @@ export default function SettingsPanel({ settings, onChange }: SettingsPanelProps
               onChange={(v) => update('sellMarkdown', v)}
             />
           </div>
+
+          {/* Transmute optimization toggle */}
+          <div className="flex items-center gap-3 pt-4 mt-4 border-t" style={{ borderColor: 'var(--color-border-subtle)' }}>
+            <button
+              onClick={() => onChange({ ...settings, enableTransmute: !settings.enableTransmute })}
+              className="relative w-9 h-5 rounded-full transition-colors flex-shrink-0"
+              style={{
+                backgroundColor: settings.enableTransmute
+                  ? 'var(--color-accent)'
+                  : 'var(--color-surface-3)',
+              }}
+            >
+              <span
+                className="absolute top-0.5 left-0.5 w-4 h-4 rounded-full transition-transform"
+                style={{
+                  backgroundColor: 'var(--color-text-primary)',
+                  transform: settings.enableTransmute ? 'translateX(16px)' : 'translateX(0)',
+                }}
+              />
+            </button>
+            <div>
+              <div className="text-xs font-medium" style={{ color: 'var(--color-text-primary)' }}>
+                Cheaper via Transmute
+              </div>
+              <div className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>
+                Show when transmuting a resource before refining is cheaper
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
