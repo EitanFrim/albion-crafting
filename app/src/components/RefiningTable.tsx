@@ -301,6 +301,11 @@ function MaterialCostTooltip({
 
   const { recipe } = result;
 
+  // Check if any ingredient is missing price data
+  const hasMissingInput = recipe.inputs.some(
+    (inp) => getBuyPriceInfo(inp.itemId).price === 0
+  );
+
   return (
     <div
       ref={triggerRef}
@@ -309,30 +314,37 @@ function MaterialCostTooltip({
       onMouseLeave={handleLeave}
     >
       {/* Trigger: material cost value */}
-      <span
-        className="tabular-nums cursor-default flex items-center gap-1 transition-colors"
-        style={{ color: result.transmuteAlt ? 'var(--color-accent)' : 'var(--color-text-secondary)' }}
-        onMouseEnter={(e) => {
-          (e.currentTarget as HTMLElement).style.color = 'var(--color-text-primary)';
-        }}
-        onMouseLeave={(e) => {
-          (e.currentTarget as HTMLElement).style.color = result.transmuteAlt ? 'var(--color-accent)' : 'var(--color-text-secondary)';
-        }}
-      >
-        {result.transmuteAlt && (
-          <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-          </svg>
-        )}
-        {formatSilver(Math.round(result.materialCost))}
-        <svg
-          className="w-3.5 h-3.5 flex-shrink-0 opacity-40"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+      <span className="inline-flex flex-col items-end">
+        <span
+          className="tabular-nums cursor-default flex items-center gap-1 transition-colors"
+          style={{ color: result.transmuteAlt ? 'var(--color-accent)' : 'var(--color-text-secondary)' }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLElement).style.color = 'var(--color-text-primary)';
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLElement).style.color = result.transmuteAlt ? 'var(--color-accent)' : 'var(--color-text-secondary)';
+          }}
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" />
-        </svg>
+          {result.transmuteAlt && (
+            <svg className="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+            </svg>
+          )}
+          {formatSilver(Math.round(result.materialCost))}
+          <svg
+            className="w-3.5 h-3.5 flex-shrink-0 opacity-40"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M12 2a10 10 0 100 20 10 10 0 000-20z" />
+          </svg>
+        </span>
+        {hasMissingInput && (
+          <span className="text-[10px] italic" style={{ color: 'var(--color-loss)' }}>
+            Incomplete
+          </span>
+        )}
       </span>
 
       {/* Portal popover — renders outside overflow:hidden ancestors */}
@@ -582,15 +594,22 @@ function RefiningRow({
       {/* Product price */}
       <td className="px-4 py-3 text-right">
         <div className="flex items-center justify-end gap-2">
-          <PriceCell
-            itemId={recipe.productId}
-            price={productInfo.price}
-            city={productInfo.city}
-            isOverride={productInfo.isOverride}
-            onOverride={onOverride}
-            onClearOverride={onClearOverride}
-            hideCity
-          />
+          <div className="inline-flex flex-col items-end">
+            <PriceCell
+              itemId={recipe.productId}
+              price={productInfo.price}
+              city={productInfo.city}
+              isOverride={productInfo.isOverride}
+              onOverride={onOverride}
+              onClearOverride={onClearOverride}
+              hideCity
+            />
+            {productInfo.price === 0 && !productInfo.isOverride && (
+              <span className="text-[10px] italic" style={{ color: 'var(--color-loss)' }}>
+                Click to set
+              </span>
+            )}
+          </div>
           <span className="text-[10px] whitespace-nowrap min-w-[60px] text-left" style={{ color: 'var(--color-text-muted)' }}>
             {productInfo.city !== 'N/A' ? productInfo.city : ''}
           </span>
