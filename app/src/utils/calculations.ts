@@ -26,6 +26,7 @@ export interface RefineResult {
   profitWithFocus: number;
   focusEfficiency: number;
   productPrice: number;
+  missingData: boolean;        // true when any input or product has no price data
 }
 
 export function calculateRefine(
@@ -35,8 +36,11 @@ export function calculateRefine(
   settings: Settings
 ): RefineResult {
   let materialCost = 0;
+  let missingData = false;
   for (const input of recipe.inputs) {
-    materialCost += input.quantity * getBuyPrice(input.itemId);
+    const price = getBuyPrice(input.itemId);
+    if (price === 0) missingData = true;
+    materialCost += input.quantity * price;
   }
 
   const nutritionCost = Math.round(
@@ -50,6 +54,7 @@ export function calculateRefine(
   const effectiveCostWithFocus = keepRateWithFocus * materialCost + nutritionCost;
 
   const productPrice = getSellPrice(recipe.productId);
+  if (productPrice === 0) missingData = true;
   const markdownMultiplier = (100 - settings.sellMarkdown) / 100;
   const estimatedSellPrice = productPrice * markdownMultiplier;
 
@@ -71,6 +76,7 @@ export function calculateRefine(
     profitWithFocus,
     focusEfficiency,
     productPrice,
+    missingData,
   };
 }
 

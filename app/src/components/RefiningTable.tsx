@@ -80,8 +80,9 @@ export default function RefiningTable({
   }, [filtered, sortKey, sortAsc]);
 
   const bestProfit = useMemo(() => {
-    if (filtered.length === 0) return 0;
-    return Math.max(...filtered.map((r) => r.profitWithFocus));
+    const valid = filtered.filter((r) => !r.missingData);
+    if (valid.length === 0) return 0;
+    return Math.max(...valid.map((r) => r.profitWithFocus));
   }, [filtered]);
 
   const toggleSort = (key: SortKey) => {
@@ -223,7 +224,7 @@ export default function RefiningTable({
                 <RefiningRow
                   key={r.recipe.id}
                   result={r}
-                  isBest={r.profitWithFocus === bestProfit && bestProfit > 0}
+                  isBest={!r.missingData && r.profitWithFocus === bestProfit && bestProfit > 0}
                   getBuyPriceInfo={getBuyPriceInfo}
                   getSellPriceInfo={getSellPriceInfo}
                   onOverride={onOverride}
@@ -573,70 +574,83 @@ function RefiningRow({
         </div>
       </td>
 
-      {/* Nutrition */}
-      <td className="px-4 py-3 text-right tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
-        {formatSilver(result.nutritionCost)}
-        <div className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{recipe.nutrition} nutr.</div>
-      </td>
-
-      {/* Product price */}
-      <td className="px-4 py-3 text-right">
-        <div className="flex items-center justify-end gap-2">
-          <PriceCell
-            itemId={recipe.productId}
-            price={productInfo.price}
-            city={productInfo.city}
-            isOverride={productInfo.isOverride}
-            onOverride={onOverride}
-            onClearOverride={onClearOverride}
-            hideCity
-          />
-          <span className="text-[10px] whitespace-nowrap min-w-[60px] text-left" style={{ color: 'var(--color-text-muted)' }}>
-            {productInfo.city !== 'N/A' ? productInfo.city : ''}
-          </span>
-        </div>
-      </td>
-
-      {/* Estimated sell price */}
-      <td className="px-4 py-3 text-right tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
-        {formatSilver(Math.round(result.estimatedSellPrice))}
-      </td>
-
-      {/* Profit no focus */}
-      <td className="px-4 py-3 text-right tabular-nums font-medium" style={{ color: profitColor(result.profitNoFocus) }}>
-        {formatSilver(Math.round(result.profitNoFocus))}
-        {result.transmuteAlt && (
-          <div className="flex items-center justify-end gap-0.5 mt-0.5">
-            <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-accent)' }}>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-            </svg>
-            <span className="text-[10px] font-medium" style={{ color: profitColor(result.transmuteAlt.adjustedProfitNoFocus) }}>
-              {formatSilver(Math.round(result.transmuteAlt.adjustedProfitNoFocus))}
+      {result.missingData ? (
+        <>
+          {/* Missing data: span remaining 5 columns */}
+          <td colSpan={5} className="px-4 py-3 text-center">
+            <span className="text-xs italic" style={{ color: 'var(--color-text-muted)' }}>
+              Missing price data
             </span>
-          </div>
-        )}
-      </td>
+          </td>
+        </>
+      ) : (
+        <>
+          {/* Nutrition */}
+          <td className="px-4 py-3 text-right tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
+            {formatSilver(result.nutritionCost)}
+            <div className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{recipe.nutrition} nutr.</div>
+          </td>
 
-      {/* Profit with focus */}
-      <td className="px-4 py-3 text-right tabular-nums font-medium" style={{ color: profitColor(result.profitWithFocus) }}>
-        {formatSilver(Math.round(result.profitWithFocus))}
-        {result.transmuteAlt && (
-          <div className="flex items-center justify-end gap-0.5 mt-0.5">
-            <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-accent)' }}>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-            </svg>
-            <span className="text-[10px] font-medium" style={{ color: profitColor(result.transmuteAlt.adjustedProfitWithFocus) }}>
-              {formatSilver(Math.round(result.transmuteAlt.adjustedProfitWithFocus))}
-            </span>
-          </div>
-        )}
-      </td>
+          {/* Product price */}
+          <td className="px-4 py-3 text-right">
+            <div className="flex items-center justify-end gap-2">
+              <PriceCell
+                itemId={recipe.productId}
+                price={productInfo.price}
+                city={productInfo.city}
+                isOverride={productInfo.isOverride}
+                onOverride={onOverride}
+                onClearOverride={onClearOverride}
+                hideCity
+              />
+              <span className="text-[10px] whitespace-nowrap min-w-[60px] text-left" style={{ color: 'var(--color-text-muted)' }}>
+                {productInfo.city !== 'N/A' ? productInfo.city : ''}
+              </span>
+            </div>
+          </td>
 
-      {/* Focus efficiency */}
-      <td className="px-4 py-3 text-right tabular-nums" style={{ color: profitColor(result.focusEfficiency) }}>
-        {result.focusEfficiency}
-        <div className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{recipe.focusCost} focus</div>
-      </td>
+          {/* Estimated sell price */}
+          <td className="px-4 py-3 text-right tabular-nums" style={{ color: 'var(--color-text-secondary)' }}>
+            {formatSilver(Math.round(result.estimatedSellPrice))}
+          </td>
+
+          {/* Profit no focus */}
+          <td className="px-4 py-3 text-right tabular-nums font-medium" style={{ color: profitColor(result.profitNoFocus) }}>
+            {formatSilver(Math.round(result.profitNoFocus))}
+            {result.transmuteAlt && (
+              <div className="flex items-center justify-end gap-0.5 mt-0.5">
+                <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-accent)' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+                <span className="text-[10px] font-medium" style={{ color: profitColor(result.transmuteAlt.adjustedProfitNoFocus) }}>
+                  {formatSilver(Math.round(result.transmuteAlt.adjustedProfitNoFocus))}
+                </span>
+              </div>
+            )}
+          </td>
+
+          {/* Profit with focus */}
+          <td className="px-4 py-3 text-right tabular-nums font-medium" style={{ color: profitColor(result.profitWithFocus) }}>
+            {formatSilver(Math.round(result.profitWithFocus))}
+            {result.transmuteAlt && (
+              <div className="flex items-center justify-end gap-0.5 mt-0.5">
+                <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-accent)' }}>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                </svg>
+                <span className="text-[10px] font-medium" style={{ color: profitColor(result.transmuteAlt.adjustedProfitWithFocus) }}>
+                  {formatSilver(Math.round(result.transmuteAlt.adjustedProfitWithFocus))}
+                </span>
+              </div>
+            )}
+          </td>
+
+          {/* Focus efficiency */}
+          <td className="px-4 py-3 text-right tabular-nums" style={{ color: profitColor(result.focusEfficiency) }}>
+            {result.focusEfficiency}
+            <div className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>{recipe.focusCost} focus</div>
+          </td>
+        </>
+      )}
     </tr>
   );
 }
