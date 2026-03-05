@@ -41,33 +41,33 @@ describe('Resource configurations', () => {
 describe('rawId / refinedId', () => {
   it('generates correct wood IDs', () => {
     expect(rawId(RESOURCES.wood, 4, 0)).toBe('T4_WOOD');
-    expect(rawId(RESOURCES.wood, 6, 3)).toBe('T6_WOOD@3');
+    expect(rawId(RESOURCES.wood, 6, 3)).toBe('T6_WOOD_LEVEL3@3');
     expect(refinedId(RESOURCES.wood, 4, 0)).toBe('T4_PLANKS');
-    expect(refinedId(RESOURCES.wood, 8, 4)).toBe('T8_PLANKS@4');
+    expect(refinedId(RESOURCES.wood, 8, 4)).toBe('T8_PLANKS_LEVEL4@4');
   });
 
   it('generates correct stone IDs', () => {
     expect(rawId(RESOURCES.stone, 5, 0)).toBe('T5_ROCK');
-    expect(rawId(RESOURCES.stone, 7, 2)).toBe('T7_ROCK@2');
+    expect(rawId(RESOURCES.stone, 7, 2)).toBe('T7_ROCK_LEVEL2@2');
     expect(refinedId(RESOURCES.stone, 6, 0)).toBe('T6_STONEBLOCK');
-    expect(refinedId(RESOURCES.stone, 6, 1)).toBe('T6_STONEBLOCK@1');
+    expect(refinedId(RESOURCES.stone, 6, 1)).toBe('T6_STONEBLOCK_LEVEL1@1');
   });
 
   it('generates correct ore IDs', () => {
     expect(rawId(RESOURCES.ore, 4, 0)).toBe('T4_ORE');
     expect(refinedId(RESOURCES.ore, 8, 0)).toBe('T8_METALBAR');
-    expect(refinedId(RESOURCES.ore, 8, 4)).toBe('T8_METALBAR@4');
+    expect(refinedId(RESOURCES.ore, 8, 4)).toBe('T8_METALBAR_LEVEL4@4');
   });
 
   it('generates correct hide IDs', () => {
-    expect(rawId(RESOURCES.hide, 5, 1)).toBe('T5_HIDE@1');
+    expect(rawId(RESOURCES.hide, 5, 1)).toBe('T5_HIDE_LEVEL1@1');
     expect(refinedId(RESOURCES.hide, 7, 0)).toBe('T7_LEATHER');
   });
 
   it('generates correct fiber IDs', () => {
     expect(rawId(RESOURCES.fiber, 4, 0)).toBe('T4_FIBER');
     expect(refinedId(RESOURCES.fiber, 4, 0)).toBe('T4_CLOTH');
-    expect(refinedId(RESOURCES.fiber, 6, 2)).toBe('T6_CLOTH@2');
+    expect(refinedId(RESOURCES.fiber, 6, 2)).toBe('T6_CLOTH_LEVEL2@2');
   });
 
   it('enchant 0 has no @ suffix', () => {
@@ -78,12 +78,12 @@ describe('rawId / refinedId', () => {
     }
   });
 
-  it('enchant > 0 has @N suffix', () => {
+  it('enchant > 0 has _LEVEL{N}@{N} suffix', () => {
     for (const type of RESOURCE_TYPES) {
       const config = RESOURCES[type];
       for (let e = 1; e <= 4; e++) {
-        expect(rawId(config, 4, e)).toContain(`@${e}`);
-        expect(refinedId(config, 4, e)).toContain(`@${e}`);
+        expect(rawId(config, 4, e)).toContain(`_LEVEL${e}@${e}`);
+        expect(refinedId(config, 4, e)).toContain(`_LEVEL${e}@${e}`);
       }
     }
   });
@@ -140,9 +140,9 @@ describe('getAllItemIds', () => {
   });
 
   it('includes enchanted items', () => {
-    expect(ids).toContain('T6_WOOD@3');
-    expect(ids).toContain('T8_METALBAR@4');
-    expect(ids).toContain('T5_HIDE@1');
+    expect(ids).toContain('T6_WOOD_LEVEL3@3');
+    expect(ids).toContain('T8_METALBAR_LEVEL4@4');
+    expect(ids).toContain('T5_HIDE_LEVEL1@1');
   });
 
   // 5 resources × (1 T3 + 25 raw + 25 refined) + 5 hearts = 260

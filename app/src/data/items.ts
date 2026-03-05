@@ -106,12 +106,12 @@ export const RESOURCE_TYPES: ResourceType[] = ['wood', 'stone', 'ore', 'hide', '
 
 export function rawId(config: ResourceConfig, tier: number, enchant: number): string {
   if (enchant === 0) return `T${tier}_${config.rawIdBase}`;
-  return `T${tier}_${config.rawIdBase}@${enchant}`;
+  return `T${tier}_${config.rawIdBase}_LEVEL${enchant}@${enchant}`;
 }
 
 export function refinedId(config: ResourceConfig, tier: number, enchant: number): string {
   if (enchant === 0) return `T${tier}_${config.refinedIdBase}`;
-  return `T${tier}_${config.refinedIdBase}@${enchant}`;
+  return `T${tier}_${config.refinedIdBase}_LEVEL${enchant}@${enchant}`;
 }
 
 // ─── Legacy Wood Helpers (backward compat) ───

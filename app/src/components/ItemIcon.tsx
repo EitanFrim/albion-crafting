@@ -7,18 +7,10 @@ interface ItemIconProps {
   className?: string;
 }
 
-// Convert price API item IDs to render API format
-// Price API: T8_WOOD@1  →  Render API: T8_WOOD_LEVEL1@1
-function toRenderId(itemId: string): string {
-  const atIndex = itemId.indexOf('@');
-  if (atIndex === -1) return itemId;
-  const base = itemId.substring(0, atIndex);
-  const enchant = itemId.substring(atIndex + 1);
-  return `${base}_LEVEL${enchant}@${enchant}`;
-}
-
+// Item IDs already use the _LEVEL format (e.g. T8_WOOD_LEVEL1@1)
+// which matches both the Albion Data API and Render API
 export function getIconUrl(itemId: string, size = 64): string {
-  return `https://render.albiononline.com/v1/item/${toRenderId(itemId)}?size=${size}`;
+  return `https://render.albiononline.com/v1/item/${itemId}?size=${size}`;
 }
 
 // ─── Preload all icons into browser cache ───
