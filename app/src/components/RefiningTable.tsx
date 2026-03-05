@@ -1,4 +1,5 @@
-import { useState, useMemo, useRef, useEffect, type ReactNode } from 'react';
+import { useState, useMemo, useRef, useEffect, useLayoutEffect, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import { type Recipe } from '../data/recipes';
 import { type Transmutation } from '../data/transmutations';
 import { calculateRefineWithTransmute, formatSilver, type Settings, type RefineResultWithTransmute, type TransmuteAltResult } from '../utils/calculations';
@@ -251,19 +252,42 @@ function MaterialCostTooltip({
   onClearOverride: (itemId: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+  const popoverRef = useRef<HTMLDivElement>(null);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
+  const [pos, setPos] = useState<{ top: number; left: number } | null>(null);
 
   // Close when clicking outside
   useEffect(() => {
     if (!open) return;
     const handler = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+      const target = e.target as Node;
+      if (
+        triggerRef.current && !triggerRef.current.contains(target) &&
+        popoverRef.current && !popoverRef.current.contains(target)
+      ) {
         setOpen(false);
       }
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  // Position the popover relative to the trigger
+  useLayoutEffect(() => {
+    if (!open || !triggerRef.current) return;
+    const rect = triggerRef.current.getBoundingClientRect();
+    // Default: below trigger, right-aligned
+    let top = rect.bottom + 6;
+    let left = rect.right;
+
+    // If popover would overflow bottom of viewport, show above instead
+    const popoverHeight = popoverRef.current?.offsetHeight ?? 300;
+    if (top + popoverHeight > window.innerHeight && rect.top - popoverHeight - 6 > 0) {
+      top = rect.top - popoverHeight - 6;
+    }
+
+    setPos({ top, left });
   }, [open]);
 
   const handleEnter = () => {
@@ -279,8 +303,8 @@ function MaterialCostTooltip({
 
   return (
     <div
-      ref={containerRef}
-      className="relative inline-flex"
+      ref={triggerRef}
+      className="inline-flex"
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
     >
@@ -311,14 +335,19 @@ function MaterialCostTooltip({
         </svg>
       </span>
 
-      {/* Popover */}
-      {open && (
+      {/* Portal popover — renders outside overflow:hidden ancestors */}
+      {open && createPortal(
         <div
-          className="absolute z-50 right-0 top-full mt-1.5 border rounded-lg shadow-xl p-3 min-w-[280px]"
+          ref={popoverRef}
+          className="fixed z-50 border rounded-lg shadow-xl p-3 min-w-[280px]"
           style={{
+            top: pos?.top ?? 0,
+            left: (pos?.left ?? 0),
+            transform: 'translateX(-100%)',
             backgroundColor: 'var(--color-surface-1)',
             borderColor: 'var(--color-border)',
             boxShadow: '0 20px 25px -5px rgba(0,0,0,0.4), 0 8px 10px -6px rgba(0,0,0,0.3)',
+            visibility: pos ? 'visible' : 'hidden',
           }}
           onMouseEnter={handleEnter}
           onMouseLeave={handleLeave}
@@ -381,7 +410,8 @@ function MaterialCostTooltip({
               getBuyPriceInfo={getBuyPriceInfo}
             />
           )}
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

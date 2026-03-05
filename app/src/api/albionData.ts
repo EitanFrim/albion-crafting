@@ -47,9 +47,13 @@ export async function fetchPrices(
 }
 
 // Check if a price date is stale (older than maxAgeHours)
+// API dates are UTC — ensure they're parsed as UTC even without a Z suffix
 export function isStale(dateStr: string, maxAgeHours: number): boolean {
   if (!dateStr || maxAgeHours <= 0) return false;
-  const date = new Date(dateStr);
+  // Append Z if the string has no timezone indicator (Z or ±HH:MM offset)
+  const hasTimezone = /Z|[+-]\d{2}:\d{2}$/.test(dateStr);
+  const utcStr = hasTimezone ? dateStr : dateStr + 'Z';
+  const date = new Date(utcStr);
   if (isNaN(date.getTime())) return true;
   const ageMs = Date.now() - date.getTime();
   return ageMs > maxAgeHours * 60 * 60 * 1000;
