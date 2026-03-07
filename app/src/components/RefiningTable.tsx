@@ -41,6 +41,7 @@ export default function RefiningTable({
   const [sortAsc, setSortAsc] = useState(true);
   const [filterTiers, setFilterTiers] = useState<Set<number>>(new Set(TIERS));
   const [filterEnchants, setFilterEnchants] = useState<Set<number>>(new Set(ENCHANTS));
+  const [quantity, setQuantity] = useState(1);
 
   const results = useMemo(() => {
     if (settings.enableTransmute) {
@@ -189,6 +190,29 @@ export default function RefiningTable({
               ))}
             </div>
           </div>
+
+          {/* Quantity multiplier */}
+          <div className="flex items-center gap-2.5">
+            <span className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--color-text-tertiary)' }}>
+              Qty
+            </span>
+            <input
+              type="number"
+              min={1}
+              step={1}
+              value={quantity}
+              onChange={(e) => {
+                const v = parseInt(e.target.value);
+                if (!isNaN(v) && v >= 1) setQuantity(v);
+              }}
+              className="border rounded-md px-2 py-1 text-xs w-16 text-right focus:outline-none focus:ring-2"
+              style={{
+                backgroundColor: 'var(--color-surface-3)',
+                borderColor: 'var(--color-border)',
+                color: 'var(--color-text-primary)',
+              }}
+            />
+          </div>
         </div>
       </div>
 
@@ -227,6 +251,7 @@ export default function RefiningTable({
                   key={r.recipe.id}
                   result={r}
                   isBest={r.profitWithFocus === bestProfit && bestProfit > 0}
+                  quantity={quantity}
                   getBuyPriceInfo={getBuyPriceInfo}
                   getSellPriceInfo={getSellPriceInfo}
                   onOverride={onOverride}
@@ -526,6 +551,7 @@ function TransmuteAltSection({
 function RefiningRow({
   result,
   isBest,
+  quantity,
   getBuyPriceInfo,
   getSellPriceInfo,
   onOverride,
@@ -533,6 +559,7 @@ function RefiningRow({
 }: {
   result: RefineResultWithTransmute;
   isBest: boolean;
+  quantity: number;
   getBuyPriceInfo: (itemId: string) => { price: number; city: string; date: string; isOverride: boolean };
   getSellPriceInfo: (itemId: string) => { price: number; city: string; date: string; isOverride: boolean };
   onOverride: (itemId: string, price: number) => void;
@@ -626,14 +653,14 @@ function RefiningRow({
 
       {/* Profit no focus */}
       <td className="px-4 py-3 text-right tabular-nums font-medium" style={{ color: profitColor(result.profitNoFocus) }}>
-        {formatSilver(Math.round(result.profitNoFocus))}
+        {formatSilver(Math.round(result.profitNoFocus * quantity))}
         {result.transmuteAlt && (
           <div className="flex items-center justify-end gap-0.5 mt-0.5">
             <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-accent)' }}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
             </svg>
             <span className="text-[10px] font-medium" style={{ color: profitColor(result.transmuteAlt.adjustedProfitNoFocus) }}>
-              {formatSilver(Math.round(result.transmuteAlt.adjustedProfitNoFocus))}
+              {formatSilver(Math.round(result.transmuteAlt.adjustedProfitNoFocus * quantity))}
             </span>
           </div>
         )}
@@ -641,14 +668,14 @@ function RefiningRow({
 
       {/* Profit with focus */}
       <td className="px-4 py-3 text-right tabular-nums font-medium" style={{ color: profitColor(result.profitWithFocus) }}>
-        {formatSilver(Math.round(result.profitWithFocus))}
+        {formatSilver(Math.round(result.profitWithFocus * quantity))}
         {result.transmuteAlt && (
           <div className="flex items-center justify-end gap-0.5 mt-0.5">
             <svg className="w-3 h-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" style={{ color: 'var(--color-accent)' }}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
             </svg>
             <span className="text-[10px] font-medium" style={{ color: profitColor(result.transmuteAlt.adjustedProfitWithFocus) }}>
-              {formatSilver(Math.round(result.transmuteAlt.adjustedProfitWithFocus))}
+              {formatSilver(Math.round(result.transmuteAlt.adjustedProfitWithFocus * quantity))}
             </span>
           </div>
         )}
