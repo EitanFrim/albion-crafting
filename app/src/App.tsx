@@ -49,8 +49,8 @@ export default function App() {
     setServer,
     buyCities,
     toggleBuyCity,
-    sellCity,
-    setSellCity,
+    sellCities,
+    toggleSellCity,
     maxAgeHours,
     setMaxAgeHours,
     loading,
@@ -81,8 +81,8 @@ export default function App() {
         setServer={setServer}
         buyCities={buyCities}
         toggleBuyCity={toggleBuyCity}
-        sellCity={sellCity}
-        setSellCity={setSellCity}
+        sellCities={sellCities}
+        toggleSellCity={toggleSellCity}
         maxAgeHours={maxAgeHours}
         setMaxAgeHours={setMaxAgeHours}
         loading={loading}

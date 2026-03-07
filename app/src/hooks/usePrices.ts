@@ -18,17 +18,15 @@ function saveOverrides(overrides: Record<string, number>) {
   localStorage.setItem(OVERRIDES_KEY, JSON.stringify(overrides));
 }
 
-export type SellMode = 'best' | City;
-
 interface PriceConfig {
   buyCities: string[];
-  sellCity: SellMode;
+  sellCities: string[];
   maxAgeHours: number;
 }
 
 const DEFAULT_CONFIG: PriceConfig = {
   buyCities: CITIES.filter(c => c !== 'Caerleon' && c !== 'Brecilien'),
-  sellCity: 'best',
+  sellCities: [...CITIES],
   maxAgeHours: 2,
 };
 
@@ -59,7 +57,7 @@ export function usePrices() {
   const [overrides, setOverrides] = useState<Record<string, number>>(loadOverrides);
   const [server, setServer] = useState<ServerKey>('europe');
   const [buyCities, setBuyCities] = useState<Set<City>>(() => new Set(loadConfig().buyCities as City[]));
-  const [sellCity, setSellCity] = useState<SellMode>(loadConfig().sellCity);
+  const [sellCities, setSellCities] = useState<Set<City>>(() => new Set(loadConfig().sellCities as City[]));
   const [maxAgeHours, setMaxAgeHours] = useState(loadConfig().maxAgeHours);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,8 +65,8 @@ export function usePrices() {
 
   // Persist config changes
   useEffect(() => {
-    saveConfig({ buyCities: [...buyCities], sellCity, maxAgeHours });
-  }, [buyCities, sellCity, maxAgeHours]);
+    saveConfig({ buyCities: [...buyCities], sellCities: [...sellCities], maxAgeHours });
+  }, [buyCities, sellCities, maxAgeHours]);
 
   const refresh = useCallback(async () => {
     setLoading(true);
@@ -112,18 +110,14 @@ export function usePrices() {
     [priceMap, overrides, buyCities, maxAgeHours]
   );
 
-  // Sell price: from specific city or cheapest across all cities
+  // Sell price: cheapest across selected sell cities
   const getSellPrice = useCallback(
     (itemId: string): number => {
       if (overrides[itemId] !== undefined) return overrides[itemId];
-      if (sellCity === 'best') {
-        const result = getCheapestPrice(priceMap, itemId, CITIES, maxAgeHours);
-        return result?.price ?? 0;
-      }
-      const result = getCityPrice(priceMap, itemId, sellCity, maxAgeHours);
+      const result = getCheapestPrice(priceMap, itemId, sellCities, maxAgeHours);
       return result?.price ?? 0;
     },
-    [priceMap, overrides, sellCity, maxAgeHours]
+    [priceMap, overrides, sellCities, maxAgeHours]
   );
 
   const getSellPriceInfo = useCallback(
@@ -131,20 +125,27 @@ export function usePrices() {
       if (overrides[itemId] !== undefined) {
         return { price: overrides[itemId], city: 'Manual', date: '', isOverride: true };
       }
-      if (sellCity === 'best') {
-        const result = getCheapestPrice(priceMap, itemId, CITIES, maxAgeHours);
-        if (result) return { ...result, isOverride: false };
-        return { price: 0, city: 'N/A', date: '', isOverride: false };
-      }
-      const result = getCityPrice(priceMap, itemId, sellCity, maxAgeHours);
+      const result = getCheapestPrice(priceMap, itemId, sellCities, maxAgeHours);
       if (result) return { ...result, isOverride: false };
-      return { price: 0, city: sellCity, date: '', isOverride: false };
+      return { price: 0, city: 'N/A', date: '', isOverride: false };
     },
-    [priceMap, overrides, sellCity, maxAgeHours]
+    [priceMap, overrides, sellCities, maxAgeHours]
   );
 
   const toggleBuyCity = useCallback((city: City) => {
     setBuyCities((prev) => {
+      const next = new Set(prev);
+      if (next.has(city)) {
+        if (next.size > 1) next.delete(city);
+      } else {
+        next.add(city);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleSellCity = useCallback((city: City) => {
+    setSellCities((prev) => {
       const next = new Set(prev);
       if (next.has(city)) {
         if (next.size > 1) next.delete(city);
@@ -190,8 +191,8 @@ export function usePrices() {
     setServer,
     buyCities,
     toggleBuyCity,
-    sellCity,
-    setSellCity,
+    sellCities,
+    toggleSellCity,
     maxAgeHours,
     setMaxAgeHours,
     loading,

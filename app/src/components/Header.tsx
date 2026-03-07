@@ -1,13 +1,12 @@
 import { SERVERS, CITIES, type ServerKey, type City } from '../data/items';
-import type { SellMode } from '../hooks/usePrices';
 
 interface HeaderProps {
   server: ServerKey;
   setServer: (s: ServerKey) => void;
   buyCities: Set<City>;
   toggleBuyCity: (c: City) => void;
-  sellCity: SellMode;
-  setSellCity: (m: SellMode) => void;
+  sellCities: Set<City>;
+  toggleSellCity: (c: City) => void;
   maxAgeHours: number;
   setMaxAgeHours: (h: number) => void;
   loading: boolean;
@@ -25,8 +24,8 @@ export default function Header({
   setServer,
   buyCities,
   toggleBuyCity,
-  sellCity,
-  setSellCity,
+  sellCities,
+  toggleSellCity,
   maxAgeHours,
   setMaxAgeHours,
   loading,
@@ -164,26 +163,33 @@ export default function Header({
             </div>
           </div>
 
-          {/* Sell city */}
-          <div className="flex items-center gap-2">
+          {/* Sell cities */}
+          <div className="flex items-center gap-2.5">
             <label className="text-xs font-medium uppercase tracking-wider whitespace-nowrap" style={{ color: 'var(--color-text-tertiary)' }}>
               Sell In
             </label>
-            <select
-              value={sellCity}
-              onChange={(e) => setSellCity(e.target.value as SellMode)}
-              className={inputClass + " cursor-pointer appearance-none pr-8"}
-              style={{
-                backgroundColor: 'var(--color-surface-3)',
-                borderColor: 'var(--color-border)',
-                color: 'var(--color-text-primary)',
-              }}
-            >
-              <option value="best">Best (Cheapest)</option>
+            <div className="flex gap-1.5 flex-wrap">
               {CITIES.map((city) => (
-                <option key={city} value={city}>{city}</option>
+                <button
+                  key={city}
+                  onClick={() => toggleSellCity(city)}
+                  className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors ${
+                    sellCities.has(city)
+                      ? 'ring-1 ring-emerald-500/30'
+                      : 'hover:opacity-80'
+                  }`}
+                  style={sellCities.has(city) ? {
+                    backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                    color: '#34d399',
+                  } : {
+                    backgroundColor: 'var(--color-surface-3)',
+                    color: 'var(--color-text-muted)',
+                  }}
+                >
+                  {city.replace('Fort Sterling', 'Ft. Sterling')}
+                </button>
               ))}
-            </select>
+            </div>
           </div>
         </div>
 
